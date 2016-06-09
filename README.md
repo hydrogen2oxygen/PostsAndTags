@@ -1,5 +1,5 @@
 # PostsAndTags
-Static website generator based on only posts and tags stored in a database and rendered to static html files linked to each other.
+Static website generator based on only posts and tags, then rendered to static html files linked to each other.
 
 How to edit:
 Create a new post. Insert tags with [[tag]], links and images with normal html.
