@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 
 public class PostAndTagsMain implements IConstants {
 
@@ -29,8 +30,13 @@ public class PostAndTagsMain implements IConstants {
 
 		}
 
-		String propertiesFile = args[0];
-		IConstants postsAndTags = new PostAndTagsMain(propertiesFile);
+		if (args.length == 1) {
+			String propertiesFile = args[0];
+			new PostAndTagsMain(propertiesFile);
+			return;
+		}
+
+		System.err.println("I don't know this syntax. Too many params.");
 
 	}
 
@@ -40,28 +46,34 @@ public class PostAndTagsMain implements IConstants {
 		initProperties(propertiesFile);
 
 		// First collect all files inside a source folder
-		File sourceDirectory = new File(properties.getProperty(IConstants.SOURCE_DIRECTORY));
-		String targetDirectory = properties.getProperty(IConstants.TARGET_DIRECTORY);
+		File sourceDirectory = new File(properties.getProperty(SOURCE_DIRECTORY));
+		String targetDirectory = properties.getProperty(TARGET_DIRECTORY);
 		File targetDirectoryFile = new File(targetDirectory);
 
 		addFilesFromFolder(sourceDirectory);
 
-		File templateFile = new File(properties.getProperty(IConstants.TEMPLATE_FILE));
+		File templateFile = new File(properties.getProperty(TEMPLATE_FILE));
 		template = FileUtils.readFileToString(templateFile, UTF_8);
 
-		File staticResourcesDirectory = new File(properties.getProperty(IConstants.STATIC_RESOURCES));
+		File staticResourcesDirectory = new File(properties.getProperty(STATIC_RESOURCES));
 
 		// Extract the tags and store them in memory (provide enough for your
 		// instance with VM parameters!)
 		for (File file : dataCollector.getListOfFiles()) {
 
 			String content = FileUtils.readFileToString(file, UTF_8);
-			Pattern p = Pattern.compile("\\[[A-z]+\\]");
+			Pattern p = Pattern.compile("\\[\\s?[\\sA-Za-z]+]");
 			Matcher m = p.matcher(content);
 
 			while (m.find()) {
 				String tagWithSquareBrackets = content.substring(m.start(), m.end());
-				String tag = tagWithSquareBrackets.toLowerCase().replaceAll("\\[", "").replaceAll("\\]", "").trim();
+
+				if (StringUtils.countMatches(tagWithSquareBrackets, "[") > 1) {
+					System.err.println("ERROR: Regular did miss a specific pattern: " + tagWithSquareBrackets);
+					System.exit(0);
+				}
+
+				String tag = tagWithSquareBrackets.replaceAll("\\[", "").replaceAll("\\]", "").trim();
 
 				dataCollector.addTag(tag);
 				dataCollector.addTagForPost(file.getName(), tag);
@@ -90,7 +102,7 @@ public class PostAndTagsMain implements IConstants {
 					tags.append(", ");
 				}
 
-				tags.append(generateLink(tag));
+				tags.append(generateLink(tag.toLowerCase()));
 			}
 
 			String fileContent = generateTagContent(title, content, tags.toString());
@@ -107,7 +119,7 @@ public class PostAndTagsMain implements IConstants {
 			if (!tagFile.exists()) {
 
 				String content = generateTagContent(tag, "", "");
-				File targetFile = new File(targetDirectory + "/" + tag + ".html");
+				File targetFile = new File(targetDirectory + "/" + tag.toLowerCase() + ".html");
 				FileUtils.writeStringToFile(targetFile, content, UTF_8);
 			}
 		}
@@ -131,17 +143,16 @@ public class PostAndTagsMain implements IConstants {
 		}
 
 		content = template.replaceAll("###CONTENT###", content).replaceAll("###TAGS###", tags.toString())
-		        .replaceAll("###TITLE###", title)
-		        .replaceAll("###PROJECTNAME###", properties.getProperty(IConstants.PROJECT_NAME))
-		        .replaceAll("###ABOUT###", properties.getProperty(IConstants.ABOUT_LINK))
-		        .replaceAll("###CONTACT###", properties.getProperty(IConstants.CONTACT_LINK));
+		        .replaceAll("###TITLE###", title).replaceAll("###PROJECTNAME###", properties.getProperty(PROJECT_NAME))
+		        .replaceAll("###ABOUT###", properties.getProperty(ABOUT_LINK))
+		        .replaceAll("###CONTACT###", properties.getProperty(CONTACT_LINK));
 
 		return content;
 	}
 
 	private String generateLink(String tag) {
 
-		String link = "<a href=\"" + tag + ".html\">" + tag + "</a>";
+		String link = "<a href=\"" + tag.toLowerCase() + ".html\">" + tag + "</a>";
 		return link;
 	}
 
@@ -176,6 +187,6 @@ public class PostAndTagsMain implements IConstants {
 	 * @param projectName
 	 */
 	private void createNewProject(String projectName) {
-
+		// TODO: this is a nice feature
 	}
 }
