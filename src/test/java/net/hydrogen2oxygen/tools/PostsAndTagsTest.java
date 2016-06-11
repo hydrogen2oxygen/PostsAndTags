@@ -1,7 +1,9 @@
 package net.hydrogen2oxygen.tools;
 
 import java.io.File;
+import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
 public class PostsAndTagsTest {
@@ -21,7 +23,7 @@ public class PostsAndTagsTest {
 		PostAndTagsMain.main(arguments);
 	}
 
-	private void cleanTargetFolder(File target) {
+	private void cleanTargetFolder(File target) throws IOException {
 		if (target.exists()) {
 			System.out.println("Target exist. I will clean it first.");
 
@@ -30,6 +32,9 @@ public class PostsAndTagsTest {
 
 					System.out.println("... deleting " + file.getName());
 					file.delete();
+				} else {
+					System.out.println("... deleting " + file.getName());
+					FileUtils.deleteDirectory(file);
 				}
 			}
 		}

@@ -2,11 +2,14 @@ package net.hydrogen2oxygen.tools;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class DataCollector {
 
 	private List<File> listOfFiles = new ArrayList<File>();
+
+	private HashMap<String, List<String>> tagsForPost = new HashMap<String, List<String>>();
 
 	private List<String> listOfTags = new ArrayList<String>();
 
@@ -36,6 +39,33 @@ public class DataCollector {
 		}
 
 		return null;
+	}
+
+	public List<String> getTagsForPost(String post) {
+
+		if (tagsForPost.containsKey(post)) {
+			return tagsForPost.get(post);
+		}
+
+		return new ArrayList<String>();
+	}
+
+	public void addTagForPost(String post, String tag) {
+
+		if (tagsForPost.get(post) != null) {
+
+			List<String> tagList = tagsForPost.get(post);
+
+			if (!tagList.contains(tag)) {
+				tagList.add(tag);
+				tagsForPost.put(post, tagList);
+			}
+
+		} else {
+			List<String> newTagList = new ArrayList<String>();
+			newTagList.add(tag);
+			tagsForPost.put(post, newTagList);
+		}
 	}
 
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,132 +13,169 @@ import org.apache.commons.io.FileUtils;
 
 public class PostAndTagsMain implements IConstants {
 
-   private static final String UTF_8 = "UTF-8";
+	private static final String UTF_8 = "UTF-8";
 
-   private Properties properties = new Properties();
+	private Properties properties = new Properties();
 
-   private DataCollector dataCollector = new DataCollector();
+	private DataCollector dataCollector = new DataCollector();
 
-   public static void main(String[] args) throws Exception {
+	private String template;
 
-      if (args.length == 0) {
-         System.out.println("At least provide a properties file as first parameter!");
-         System.exit(0);
+	public static void main(String[] args) throws Exception {
 
-      }
+		if (args.length == 0) {
+			System.out.println("At least provide a properties file as first parameter!");
+			System.exit(0);
 
-      String propertiesFile = args[0];
-      IConstants postsAndTags = new PostAndTagsMain(propertiesFile);
+		}
 
-   }
+		String propertiesFile = args[0];
+		IConstants postsAndTags = new PostAndTagsMain(propertiesFile);
 
-   private PostAndTagsMain(String propertiesFile) throws Exception {
+	}
 
-      // Init configurations
-      initProperties(propertiesFile);
+	private PostAndTagsMain(String propertiesFile) throws Exception {
 
-      // First collect all files inside a source folder
-      File sourceDirectory = new File(properties.getProperty(IConstants.SOURCE_DIRECTORY));
-      String targetDirectory = properties.getProperty(IConstants.TARGET_DIRECTORY);
+		// Init configurations
+		initProperties(propertiesFile);
 
-      addFilesFromFolder(sourceDirectory);
+		// First collect all files inside a source folder
+		File sourceDirectory = new File(properties.getProperty(IConstants.SOURCE_DIRECTORY));
+		String targetDirectory = properties.getProperty(IConstants.TARGET_DIRECTORY);
+		File targetDirectoryFile = new File(targetDirectory);
 
-      File templateFile = new File(properties.getProperty(IConstants.TEMPLATE_FILE));
-      String template = FileUtils.readFileToString(templateFile, UTF_8);
+		addFilesFromFolder(sourceDirectory);
 
-      File tagTtemplateFile = new File(properties.getProperty(IConstants.TAG_TEMPLATE_FILE));
-      String tagTemplate = FileUtils.readFileToString(tagTtemplateFile, UTF_8);
+		File templateFile = new File(properties.getProperty(IConstants.TEMPLATE_FILE));
+		template = FileUtils.readFileToString(templateFile, UTF_8);
 
-      // Extract the tags and store them in memory (provide enough for your
-      // instance with VM parameters!)
-      for (File file : dataCollector.getListOfFiles()) {
+		File staticResourcesDirectory = new File(properties.getProperty(IConstants.STATIC_RESOURCES));
 
-         String content = FileUtils.readFileToString(file, UTF_8);
-         Pattern p = Pattern.compile("\\[[A-z]+\\]");
-         Matcher m = p.matcher(content);
+		// Extract the tags and store them in memory (provide enough for your
+		// instance with VM parameters!)
+		for (File file : dataCollector.getListOfFiles()) {
 
-         while (m.find()) {
-            String tagWithSquareBrackets = content.substring(m.start(), m.end());
-            String tag = tagWithSquareBrackets.toLowerCase().replaceAll("\\[", "").replaceAll("\\]", "").trim();
+			String content = FileUtils.readFileToString(file, UTF_8);
+			Pattern p = Pattern.compile("\\[[A-z]+\\]");
+			Matcher m = p.matcher(content);
 
-            dataCollector.addTag(tag);
-         }
+			while (m.find()) {
+				String tagWithSquareBrackets = content.substring(m.start(), m.end());
+				String tag = tagWithSquareBrackets.toLowerCase().replaceAll("\\[", "").replaceAll("\\]", "").trim();
 
-      }
+				dataCollector.addTag(tag);
+				dataCollector.addTagForPost(file.getName(), tag);
+			}
 
-      // Start generating the target html files
-      for (File file : dataCollector.getListOfFiles()) {
+		}
 
-         String content = FileUtils.readFileToString(file, UTF_8);
+		// Start generating the target html files
+		for (File file : dataCollector.getListOfFiles()) {
 
-         for (String tag : dataCollector.getListOfTags()) {
-            content = content.replaceAll("\\[" + tag + "]", generateLink(tag));
-         }
+			String content = FileUtils.readFileToString(file, UTF_8);
+			String title = FileUtils.readLines(file, UTF_8).get(0);
 
-         content = template.replaceAll("###CONTENT###", content);
+			content = content.replace(title, "");
 
-         File targetFile = new File(targetDirectory + "/" + file.getName());
-         FileUtils.writeStringToFile(targetFile, content, UTF_8);
-      }
+			for (String tag : dataCollector.getListOfTags()) {
+				content = content.replaceAll("\\[" + tag + "]", generateLink(tag));
+			}
 
-      // Now in a second run generate the tags html
-      for (String tag : dataCollector.getListOfTags()) {
+			StringBuffer tags = new StringBuffer();
+			List<String> tagListForFile = dataCollector.getTagsForPost(file.getName());
 
-         File tagFile = new File(targetDirectory + "/" + tag + ".html");
+			for (String tag : tagListForFile) {
 
-         if (!tagFile.exists()) {
+				if (tags.length() > 0) {
+					tags.append(", ");
+				}
 
-            String content = generateTagContent(tag, tagTemplate, template);
-            File targetFile = new File(targetDirectory + "/" + tag + ".html");
-            FileUtils.writeStringToFile(targetFile, content, UTF_8);
-         }
-      }
+				tags.append(generateLink(tag));
+			}
 
-      // Generate a protocol also as a html file inside the folder for
-      // protocol
-   }
+			String fileContent = generateTagContent(title, content, tags.toString());
 
-   private String generateTagContent(String tag, String tagTemplate, String template) {
+			File targetFile = new File(targetDirectory + "/" + file.getName());
+			FileUtils.writeStringToFile(targetFile, fileContent, UTF_8);
+		}
 
-      String tagContent = tagTemplate.replaceAll("###TAG###", tag.toUpperCase());
-      String content = template.replaceAll("###CONTENT###", tagContent).replaceAll("###TITLE###", tag.toUpperCase());
-      return content;
-   }
+		// Now in a second run generate the tags html
+		for (String tag : dataCollector.getListOfTags()) {
 
-   private String generateLink(String tag) {
+			File tagFile = new File(targetDirectory + "/" + tag + ".html");
 
-      String link = "<a href=\"" + tag + ".html\">" + tag + "</a>";
-      return link;
-   }
+			if (!tagFile.exists()) {
 
-   private void addFilesFromFolder(File folder) {
+				String content = generateTagContent(tag, "", "");
+				File targetFile = new File(targetDirectory + "/" + tag + ".html");
+				FileUtils.writeStringToFile(targetFile, content, UTF_8);
+			}
+		}
 
-      for (File file : folder.listFiles()) {
+		// Copy the content of the provided staticResources to the target folder
+		for (File file : staticResourcesDirectory.listFiles()) {
 
-         if (file.isFile()) {
+			if (file.isDirectory()) {
+				FileUtils.copyDirectoryToDirectory(file, targetDirectoryFile);
+			}
+		}
 
-            dataCollector.addFile(file);
-         }
+		// Generate a protocol also as a html file inside the folder for
+		// protocol
+	}
 
-         // Recursively move into sub folders
-         if (file.isDirectory()) {
-            addFilesFromFolder(file);
-         }
-      }
-   }
+	private String generateTagContent(String title, String content, String tags) {
 
-   private void initProperties(String propertiesFile) throws FileNotFoundException, IOException {
+		if (title.equals(title.toLowerCase())) {
+			title = title.substring(0, 1).toUpperCase() + title.substring(1);
+		}
 
-      FileInputStream in = new FileInputStream(propertiesFile);
-      properties.load(in);
-   }
+		content = template.replaceAll("###CONTENT###", content).replaceAll("###TAGS###", tags.toString())
+		        .replaceAll("###TITLE###", title)
+		        .replaceAll("###PROJECTNAME###", properties.getProperty(IConstants.PROJECT_NAME))
+		        .replaceAll("###ABOUT###", properties.getProperty(IConstants.ABOUT_LINK))
+		        .replaceAll("###CONTACT###", properties.getProperty(IConstants.CONTACT_LINK));
 
-   /**
-    * This method will create a folder structure with default templates for your convenience
-    *
-    * @param projectName
-    */
-   private void createNewProject(String projectName) {
+		return content;
+	}
 
-   }
+	private String generateLink(String tag) {
+
+		String link = "<a href=\"" + tag + ".html\">" + tag + "</a>";
+		return link;
+	}
+
+	private void addFilesFromFolder(File folder) {
+
+		for (File file : folder.listFiles()) {
+
+			if (file.isFile()) {
+
+				dataCollector.addFile(file);
+			}
+
+			// Recursively move into sub folders
+			if (file.isDirectory()) {
+				// TODO: not yet, we need a clear idea why we should allow
+				// sub-folders
+				// addFilesFromFolder(file);
+			}
+		}
+	}
+
+	private void initProperties(String propertiesFile) throws FileNotFoundException, IOException {
+
+		FileInputStream in = new FileInputStream(propertiesFile);
+		properties.load(in);
+	}
+
+	/**
+	 * This method will create a folder structure with default templates for
+	 * your convenience
+	 *
+	 * @param projectName
+	 */
+	private void createNewProject(String projectName) {
+
+	}
 }
