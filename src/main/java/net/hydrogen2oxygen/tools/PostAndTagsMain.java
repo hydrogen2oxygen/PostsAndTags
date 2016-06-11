@@ -50,6 +50,9 @@ public class PostAndTagsMain implements IConstants {
 		String targetDirectory = properties.getProperty(TARGET_DIRECTORY);
 		File targetDirectoryFile = new File(targetDirectory);
 
+		// Clean target directory first
+		PostAndTagsMain.cleanFolder(targetDirectoryFile);
+
 		addFilesFromFolder(sourceDirectory);
 
 		File templateFile = new File(properties.getProperty(TEMPLATE_FILE));
@@ -186,7 +189,24 @@ public class PostAndTagsMain implements IConstants {
 	 *
 	 * @param projectName
 	 */
-	private void createNewProject(String projectName) {
+	public static void createNewProject(String projectName) {
 		// TODO: this is a nice feature
+	}
+
+	public static void cleanFolder(File folder) throws IOException {
+		if (folder.exists() && folder.isDirectory()) {
+			System.out.println("Target exist. I will clean it first.");
+
+			for (File file : folder.listFiles()) {
+				if (file.isFile()) {
+
+					System.out.println("... deleting " + file.getName());
+					file.delete();
+				} else {
+					System.out.println("... deleting " + file.getName());
+					FileUtils.deleteDirectory(file);
+				}
+			}
+		}
 	}
 }
