@@ -41,6 +41,32 @@ public class DataCollector {
 		return null;
 	}
 
+	/**
+	 * The other way around: return each post where the tag was included.
+	 * 
+	 * @param tag
+	 * @return
+	 */
+	public List<String> getPostForTag(String tag) {
+
+		List<String> posts = new ArrayList<String>();
+
+		for (String post : tagsForPost.keySet()) {
+
+			if (tagsForPost.get(post).contains(tag)) {
+				posts.add(post.replace(".html", ""));
+			}
+		}
+
+		return posts;
+	}
+
+	/**
+	 * Get all tags from a specific post.
+	 * 
+	 * @param post
+	 * @return
+	 */
 	public List<String> getTagsForPost(String post) {
 
 		if (tagsForPost.containsKey(post)) {

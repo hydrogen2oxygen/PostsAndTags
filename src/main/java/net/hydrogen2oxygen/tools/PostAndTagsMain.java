@@ -121,7 +121,19 @@ public class PostAndTagsMain implements IConstants {
 
 			if (!tagFile.exists()) {
 
-				String content = generateTagContent(tag, "", "");
+				StringBuffer posts = new StringBuffer();
+				List<String> tagListForFile = dataCollector.getPostForTag(tag);
+
+				for (String post : tagListForFile) {
+
+					if (posts.length() > 0) {
+						posts.append(", ");
+					}
+
+					posts.append(generateLink(post.toLowerCase()));
+				}
+
+				String content = generateTagContent(tag, "", posts.toString());
 				File targetFile = new File(targetDirectory + "/" + tag.toLowerCase() + ".html");
 				FileUtils.writeStringToFile(targetFile, content, UTF_8);
 			}
