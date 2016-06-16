@@ -65,23 +65,8 @@ public class PostAndTagsMain implements IConstants {
 		for (File file : dataCollector.getListOfFiles()) {
 
 			String content = FileUtils.readFileToString(file, UTF_8);
-			Pattern p = Pattern.compile("\\[\\s?[\\sA-Za-z]+]");
-			Matcher m = p.matcher(content);
-
-			while (m.find()) {
-				String tagWithSquareBrackets = content.substring(m.start(), m.end());
-
-				if (StringUtils.countMatches(tagWithSquareBrackets, "[") > 1) {
-					System.err.println("ERROR: Regular did miss a specific pattern: " + tagWithSquareBrackets);
-					System.exit(0);
-				}
-
-				String tag = tagWithSquareBrackets.replaceAll("\\[", "").replaceAll("\\]", "").trim();
-
-				dataCollector.addTag(tag);
-				dataCollector.addTagForPost(file.getName(), tag);
-			}
-
+			extractTagsFromContent(file, content, "\\[\\s?[\\sA-Za-z]+]");
+			extractTagsFromContent(file, content, "\\[\\s?[\\sA-Za-z][0-9]+]");
 		}
 
 		// Start generating the target html files
@@ -149,6 +134,25 @@ public class PostAndTagsMain implements IConstants {
 
 		// Generate a protocol also as a html file inside the folder for
 		// protocol
+	}
+
+	private void extractTagsFromContent(File file, String content, String regex) {
+		Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(content);
+
+		while (m.find()) {
+			String tagWithSquareBrackets = content.substring(m.start(), m.end());
+
+			if (StringUtils.countMatches(tagWithSquareBrackets, "[") > 1) {
+				System.err.println("ERROR: Regular did miss a specific pattern: " + tagWithSquareBrackets);
+				System.exit(0);
+			}
+
+			String tag = tagWithSquareBrackets.replaceAll("\\[", "").replaceAll("\\]", "").trim();
+
+			dataCollector.addTag(tag);
+			dataCollector.addTagForPost(file.getName(), tag);
+		}
 	}
 
 	private String generateTagContent(String title, String content, String tags) {

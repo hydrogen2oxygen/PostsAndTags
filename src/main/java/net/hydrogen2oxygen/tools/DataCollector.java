@@ -2,6 +2,7 @@ package net.hydrogen2oxygen.tools;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -26,6 +27,8 @@ public class DataCollector {
 	}
 
 	public List<String> getListOfTags() {
+
+		// return only the unaltered list here
 		return listOfTags;
 	}
 
@@ -58,7 +61,9 @@ public class DataCollector {
 			}
 		}
 
-		return posts;
+		Collections.sort(posts);
+
+		return getLowerCaseList(posts);
 	}
 
 	/**
@@ -70,10 +75,25 @@ public class DataCollector {
 	public List<String> getTagsForPost(String post) {
 
 		if (tagsForPost.containsKey(post)) {
-			return tagsForPost.get(post);
+
+			List<String> listOfTagsForPost = getLowerCaseList(tagsForPost.get(post));
+			Collections.sort(listOfTagsForPost);
+
+			return listOfTagsForPost;
 		}
 
 		return new ArrayList<String>();
+	}
+
+	private List<String> getLowerCaseList(List<String> list) {
+
+		List<String> newList = new ArrayList<String>();
+
+		for (String text : list) {
+			newList.add(text.toLowerCase().trim());
+		}
+
+		return newList;
 	}
 
 	public void addTagForPost(String post, String tag) {
