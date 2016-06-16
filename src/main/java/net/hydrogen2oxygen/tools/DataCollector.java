@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import com.dave.koelle.alphanumeric.sorting.AlphanumComparator;
+
 public class DataCollector {
 
 	private List<File> listOfFiles = new ArrayList<File>();
@@ -50,6 +52,7 @@ public class DataCollector {
 	 * @param tag
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	public List<String> getPostForTag(String tag) {
 
 		List<String> posts = new ArrayList<String>();
@@ -61,7 +64,7 @@ public class DataCollector {
 			}
 		}
 
-		Collections.sort(posts);
+		Collections.sort(posts, new AlphanumComparator());
 
 		return getLowerCaseList(posts);
 	}
@@ -72,12 +75,13 @@ public class DataCollector {
 	 * @param post
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	public List<String> getTagsForPost(String post) {
 
 		if (tagsForPost.containsKey(post)) {
 
 			List<String> listOfTagsForPost = getLowerCaseList(tagsForPost.get(post));
-			Collections.sort(listOfTagsForPost);
+			Collections.sort(listOfTagsForPost, new AlphanumComparator());
 
 			return listOfTagsForPost;
 		}
